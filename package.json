@@ -1,9 +1,9 @@
 {
-  "name": "za2030-personal-action-round",
+  "name": "za2030-commitment-board",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "ZA2030 개인 액션 라운드 — 실천 다짐 공유 보드",
+  "description": "ZA2030 Commitment Board — 개인 실천 다짐 + 동료 응원/지원 공유 보드",
   "dependencies": {
     "@netlify/blobs": "11.0.3"
   }

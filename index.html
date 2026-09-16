@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>개인 액션 라운드 | ZEISS Agenda 2030</title>
+<title>ZA2030 Commitment Board</title>
 <link rel="stylesheet" as="style" crossorigin
   href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <style>
@@ -55,6 +55,10 @@
   .status-bar.muted{color:var(--muted);}
   .status-bar .status-empty{font-size:14px;color:var(--muted);padding-right:6px;}
   .status-bar .status-ended .status-label{color:#21A366;}
+  .status-bar .next-review{
+    font-size:13px;color:var(--blue-dark);font-weight:700;margin-top:10px;
+    padding-top:10px;border-top:1px dashed var(--border);
+  }
   .status-admin-btn{
     position:absolute;top:8px;right:8px;width:44px;height:44px;
     border:1.5px solid var(--border);background:#fff;border-radius:10px;
@@ -184,6 +188,14 @@
   .verify-link-row{margin:-6px 0 16px;}
   .pin-input{max-width:160px;}
 
+  .comments-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
+  .comment-item{
+    background:#F4F7FC;border-radius:10px;padding:8px 12px;font-size:13.5px;
+    margin-bottom:6px;line-height:1.5;
+  }
+  .comment-item b{color:var(--text);}
+  .comment-empty-hint{font-size:12px;color:#A6AFBD;margin-bottom:6px;}
+
   .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:15px;}
 
   .group{margin-bottom:22px;}
@@ -211,9 +223,9 @@
 
 <header class="banner">
   <div class="inner">
-    <div class="eyebrow">ZEISS Agenda 2030 · 개인 액션 라운드</div>
+    <div class="eyebrow">ZEISS Agenda 2030 · Commitment Board</div>
     <h1>이번 주, 나의 실천을 다짐해요</h1>
-    <p class="subtitle">문장을 완성해서 제출하면 모두가 함께 볼 수 있어요</p>
+    <p class="subtitle">문장을 완성해서 제출하면 모두가 함께 보고, 서로 응원·지원할 수 있어요</p>
   </div>
 </header>
 
@@ -312,6 +324,11 @@
         <input type="number" id="cfgTotalWeeks" min="1" max="52" placeholder="예: 8" />
       </div>
     </div>
+    <div class="field">
+      <label>다음 리뷰 날짜 (선택)</label>
+      <input type="date" id="cfgNextReview" />
+      <div class="hint" style="margin-top:6px;">W주차 표시와 별개로, 팀이 합의한 다음 리뷰 미팅 날짜를 상태 바에 함께 표시해요. 비워두면 표시되지 않아요.</div>
+    </div>
     <button class="btn secondary" onclick="saveConfig()">기간 저장</button>
     <div id="cfgMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
 
@@ -362,6 +379,30 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="commentModal">
+  <div class="modal">
+    <button class="close-x" onclick="closeComment()">✕</button>
+    <h3>응원·지원 코멘트</h3>
+    <div class="hint" style="margin-top:0;">평가보다는 실행을 돕는 응원에 가깝게요 — "이래서 잘 될 것 같아요" 또는 "이렇게 도울 수 있어요" 같은 코멘트를 자유롭게 남겨주세요.</div>
+    <div class="field row2">
+      <div>
+        <label>이름</label>
+        <input type="text" id="commentName" maxlength="30" />
+      </div>
+      <div>
+        <label>소속(팀)</label>
+        <input type="text" id="commentTeam" maxlength="30" />
+      </div>
+    </div>
+    <div class="field">
+      <label>코멘트</label>
+      <textarea id="commentText" maxlength="200" placeholder="예: 지난주에 비슷한 걸 해봤는데, 필요하면 제가 자료 공유해드릴게요"></textarea>
+    </div>
+    <button class="btn" onclick="submitComment()">코멘트 남기기</button>
+    <div id="commentMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="editModal">
   <div class="modal">
     <button class="close-x" onclick="closeEdit()">✕</button>
@@ -381,7 +422,7 @@
 </div>
 
 <script>
-const API = '/api/action-round';
+const API = '/api/commitment-board';
 
 const PILLARS = [
   { key:'customer', name:'Customer at the Core', hex:'#2D6CDF', example:'고객 요청에 24시간 내 응답하겠습니다' },
@@ -444,6 +485,17 @@ function addDays(d, n){
   return r;
 }
 
+// W1/W2 자동 계산과 별개로, 관리자가 명시적으로 못박아둔 "다음 리뷰 날짜"를 함께 보여주기 위한 줄.
+// (Commitment Board Step 6 "Wrap-up & Review"의 Next Review 날짜를 반영)
+function nextReviewLine(){
+  if(!boardConfig || !boardConfig.nextReviewDate) return '';
+  const nr = dateOnly(new Date(boardConfig.nextReviewDate + 'T00:00:00'));
+  const today = dateOnly(new Date());
+  const diff = Math.round((nr - today) / 86400000);
+  const label = diff > 0 ? `D-${diff}` : diff === 0 ? '오늘' : `${-diff}일 지남`;
+  return `<div class="next-review">📅 다음 리뷰: ${fmtShort(nr)} · ${label}</div>`;
+}
+
 function renderStatusBar(){
   const el = document.getElementById('statusBar');
   if(!boardConfig || !boardConfig.startDate || !boardConfig.totalWeeks){
@@ -462,6 +514,7 @@ function renderStatusBar(){
         <span class="status-range">${fmtShort(start)} 시작 예정 · 총 ${total}주 진행</span>
       </div>
       <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+      ${nextReviewLine()}
     `;
     return;
   }
@@ -480,6 +533,7 @@ function renderStatusBar(){
         <span class="status-range">${fmtShort(start)} ~ ${fmtShort(addDays(start, total*7-1))} · 총 ${total}주 진행 완료</span>
       </div>
       <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+      ${nextReviewLine()}
     `;
     return;
   }
@@ -490,6 +544,7 @@ function renderStatusBar(){
       <span class="status-range">${fmtShort(weekStart)} ~ ${fmtShort(weekEnd)} 진행 중</span>
     </div>
     <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+    ${nextReviewLine()}
   `;
 }
 
@@ -688,6 +743,7 @@ function entryCardHtml(e){
       <div class="dates">${dateLine}</div>
       <div class="actions">
         <button class="like-btn ${liked?'liked':''}" onclick="toggleLike('${e.id}')">❤️ ${(e.likedBy||[]).length}</button>
+        <button class="mini-link" onclick="openComment('${e.id}')">💬 응원 남기기${(e.comments||[]).length ? ` (${(e.comments||[]).length})` : ''}</button>
         ${mine ? `
           <div class="owner-actions">
             <button class="mini-link done-btn ${e.done?'done':''}" onclick="toggleDone('${e.id}')">${e.done ? '↩️ 진행중으로' : '✅ 완료로 표시'}</button>
@@ -695,6 +751,10 @@ function entryCardHtml(e){
             <button class="mini-link del-link" onclick="deleteEntry('${e.id}')">삭제</button>
           </div>` : ''}
       </div>
+      ${(e.comments||[]).length ? `
+        <div class="comments-section">
+          ${e.comments.map(c => `<div class="comment-item"><b>${escapeHtml(c.name)}</b> · ${escapeHtml(c.team)}: ${escapeHtml(c.text)}</div>`).join('')}
+        </div>` : ''}
     </div>
   `;
 }
@@ -824,6 +884,48 @@ async function saveEdit(){
   }
 }
 
+// ---------- 응원·지원 코멘트 ----------
+
+let commentEntryId = null;
+
+function openComment(id){
+  commentEntryId = id;
+  document.getElementById('commentName').value = localStorage.getItem('zar_last_name') || '';
+  document.getElementById('commentTeam').value = localStorage.getItem('zar_last_team') || '';
+  document.getElementById('commentText').value = '';
+  document.getElementById('commentMsg').textContent = '';
+  document.getElementById('commentModal').classList.add('active');
+}
+function closeComment(){
+  document.getElementById('commentModal').classList.remove('active');
+  commentEntryId = null;
+}
+
+async function submitComment(){
+  const name = document.getElementById('commentName').value.trim();
+  const team = document.getElementById('commentTeam').value.trim();
+  const text = document.getElementById('commentText').value.trim();
+  const msg = document.getElementById('commentMsg');
+  msg.style.color = '#B44';
+  if(!name || !team){ msg.textContent = '이름과 소속을 입력해 주세요.'; return; }
+  if(!text){ msg.textContent = '코멘트 내용을 입력해 주세요.'; return; }
+  try{
+    const res = await fetch(API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'add-comment', id: commentEntryId, name, team, text })
+    });
+    if(!res.ok){
+      const data = await res.json().catch(()=>({}));
+      msg.textContent = data.message || data.error || '코멘트 등록에 실패했어요.';
+      return;
+    }
+    closeComment();
+    await fetchEntries();
+  }catch(e){
+    msg.textContent = '코멘트 등록에 실패했어요.';
+  }
+}
+
 // ---------- 본인 확인(다른 기기) ----------
 
 function openVerify(){
@@ -905,12 +1007,13 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function downloadCsv(){
-  const header = ['이름','소속','축','다짐 문장','지원 요청','등록일','수정일','완료 여부'];
+  const header = ['이름','소속','축','다짐 문장','지원 요청','응원/지원 코멘트 수','등록일','수정일','완료 여부'];
   const rows = allEntries.map(e => {
     const p = pillarByKey(e.pillarKey) || {name:e.pillarName};
     const sentence = `이번 주에 나는 ${e.actionText} 을/를 하겠습니다. 그 이유는 ${p.name} 을/를 더 잘 실천하기 위해서입니다.`;
     return [
       e.name, e.team, p.name, sentence, e.supportRequest || '',
+      (e.comments||[]).length,
       new Date(e.createdAt).toLocaleString('ko-KR'),
       e.updatedAt && e.updatedAt !== e.createdAt ? new Date(e.updatedAt).toLocaleString('ko-KR') : '',
       e.done ? 'Y' : 'N'
@@ -920,7 +1023,7 @@ function downloadCsv(){
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = `개인액션라운드_${new Date().toISOString().slice(0,10)}.csv`;
+  a.href = url; a.download = `ZA2030_Commitment_Board_${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
 }
 
@@ -928,6 +1031,7 @@ function openAdmin(){
   if(boardConfig){
     document.getElementById('cfgStartDate').value = boardConfig.startDate || '';
     document.getElementById('cfgTotalWeeks').value = boardConfig.totalWeeks || '';
+    document.getElementById('cfgNextReview').value = boardConfig.nextReviewDate || '';
   }
   document.getElementById('adminModal').classList.add('active');
 }
@@ -968,6 +1072,7 @@ async function saveConfig(){
   const pw = document.getElementById('adminPw').value;
   const startDate = document.getElementById('cfgStartDate').value;
   const totalWeeks = document.getElementById('cfgTotalWeeks').value;
+  const nextReviewDate = document.getElementById('cfgNextReview').value;
   const msg = document.getElementById('cfgMsg');
   msg.style.color = '#B44';
   if(!pw){ msg.textContent='비밀번호를 입력해 주세요.'; return; }
@@ -976,7 +1081,7 @@ async function saveConfig(){
   try{
     const res = await fetch(API, {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'set-config', adminPassword: pw, startDate, totalWeeks })
+      body: JSON.stringify({ action:'set-config', adminPassword: pw, startDate, totalWeeks, nextReviewDate })
     });
     if(!res.ok){
       const data = await res.json().catch(()=>({}));

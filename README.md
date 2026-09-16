@@ -1,20 +1,43 @@
-# ZA2030 개인 액션 라운드
+# ZA2030 Commitment Board
 
-"개인 액션 라운드" 세션에서 참가자들이 이번 주 실천 다짐 문장을 완성해 제출하고,
-전체 다짐을 함께 보는 공유 보드입니다. ZA2030 4대 축(Customer at the Core / Speed /
-Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태깅합니다.
+ZEISS Agenda 2030 워크숍 자료 "Commitment Board" 세션(01 OPEN ~ 06 WRAP, 6장 슬라이드)의
+핵심 단계인 **Individual Reflection(개인 다짐 작성) → Build the Board(함께 보기) → Peer
+Encouragement & Support(동료 응원/지원)**를 디지털로 구현한 공유 보드입니다. 원래 "개인 액션
+라운드"라는 이름의 별도 도구였다가, 같은 세션 흐름을 다루는 Commitment Board 자료와 통합하면서
+이 이름으로 개편했습니다.
+
+참가자는 아래 문장을 완성해 제출하고, 전체 팀원이 함께 봅니다. ZA2030 4대 축(Customer at the
+Core / Speed / Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태깅합니다.
+
+> "이번 주에 나는 ___을/를 하겠습니다. 그 이유는 ___을/를 더 잘 실천하기 위해서입니다."
 
 정기적으로 리뷰하는 것을 전제로 설계되어, 제출할 때마다 **새 이력(history)으로 쌓이고**
 (기존 다짐을 덮어쓰지 않음) 등록일/수정일/완료 여부를 함께 기록합니다.
 
+## Commitment Board 세션과의 관계
+원본 슬라이드의 5단계(Kick-off → Individual Reflection → Build the Board → Peer
+Encouragement & Support → Wrap-up & Review) 중, 이 도구는 실제로 반복 사용되는 **Reflection ·
+Build · Support** 3단계를 상시 동작하는 웹 보드로 옮겨 담았습니다. Kick-off(4대 축 리마인드)와
+Wrap-up(다음 리뷰 예고)은 세션 진행자가 슬라이드로 짧게 진행하고, 이 보드는 그 사이 실제
+작성·열람·응원이 이루어지는 실행 화면 역할을 합니다.
+
+| 슬라이드 단계 | 이 도구에서 |
+|---|---|
+| 02 KICK-OFF — 4대 요소 리마인드 | 다짐 작성 화면의 4대 축 카드(예시 문장 포함) |
+| 03 REFLECT — Element / I will / so that | 다짐 작성 폼 + 실시간 문장 미리보기 |
+| 04 BUILD — 요소별로 배치된 보드 | 함께 보기 → 축 필터 칩 / 참가자별 보기 |
+| 05 SUPPORT — 동료 응원·지원 코멘트 | 각 카드의 "💬 응원 남기기" 코멘트 |
+| 06 WRAP — Keep visible / Next Review | 상단 상태 바(항상 노출) + "다음 리뷰 날짜" 표시 |
+
 ## 화면 구성
 - **상단 진행 기간 상태 바** (모든 탭에서 항상 보임): 관리자가 설정한 활동 시작일과 총 리뷰
   주차를 기준으로, 오늘이 몇 주차(W1, W2…)인지와 이번 주 날짜 범위, 진행률 바를 모두에게
-  보여줍니다. 시작 전에는 "D-N", 기간이 끝나면 "리뷰 기간 종료"로 표시됩니다. 아직 설정 전이면
-  안내 문구만 표시됩니다.
+  보여줍니다. 시작 전에는 "D-N", 기간이 끝나면 "리뷰 기간 종료"로 표시됩니다. 관리자가 "다음
+  리뷰 날짜"를 별도로 지정했다면 그 날짜와 D-day도 함께 표시됩니다. 아직 설정 전이면 안내
+  문구만 표시됩니다.
 - **다짐 작성**: 이름·소속 입력 → 4대 축 중 하나 선택(예시 문장 표시) → "이번 주에 나는
   ___을 하겠습니다. 그 이유는 ___을 더 잘 실천하기 위해서입니다." 문장 실시간 미리보기 →
-  팀/동료에게 받고 싶은 지원(선택 입력) → 제출. 제출할 때마다 새 다짐 이력으로 기록되며,
+  팀/동료에게 받고 싶은 지원(선택) → 제출. 제출할 때마다 새 다짐 이력으로 기록되며,
   이름·소속만 다음 제출을 위해 편의상 기억해둡니다.
 - **함께 보기**:
   - **전체 피드 / 참가자별 보기** 전환: 전체 피드는 모든 다짐을 최신 등록순으로,
@@ -22,6 +45,9 @@ Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태�
   - 상단 필터 칩(전체/4대 축)으로 축별 좁혀보기, "🙋 지원 요청만" 토글로 지원이 필요한
     다짐만 모아보기
   - 카드에 등록일·수정일·완료일 표시, 공감(❤️) 버튼, 지원 요청 내용(있는 경우 강조 박스)
+  - **💬 응원 남기기**: 누구나 이름·소속을 밝히고 그 사람의 다짐에 자유 코멘트를 남길 수
+    있습니다(평가가 아니라 "이래서 잘 될 것 같다"거나 "이렇게 도울 수 있다"는 응원/지원 목적).
+    남겨진 코멘트는 카드 하단에 모두 표시됩니다.
   - 본인 카드에서만: ✏️ 수정, ✅ 완료로 표시/↩️ 진행중으로 되돌리기, 삭제
   - 2초 간격 자동 새로고침(이 탭이 보이는 동안만), CSV 다운로드, 관리자 전체 삭제
 
@@ -29,7 +55,9 @@ Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태�
 - 제출은 **매번 새 이력 항목**으로 쌓입니다(과거 주차 다짐이 사라지지 않음)
 - 본인이 등록한 항목은 직접 **수정**(오탈자 정정 등, 등록일은 유지되고 수정일만 갱신),
   **완료 여부 토글**, **삭제**가 가능합니다
-- 다른 사람의 항목은 공감만 가능하고 수정·완료 처리·삭제는 할 수 없습니다
+- 다른 사람의 항목은 공감·응원 코멘트만 가능하고 수정·완료 처리·삭제는 할 수 없습니다
+- 응원 코멘트는 누구나(본인 다짐이 아니어도) 남길 수 있으며, 부적절한 코멘트는 관리자만 개별
+  삭제할 수 있습니다(작성자 본인 삭제 기능은 없음 — 모더레이션 용도로 단순화)
 
 ## 기기가 바뀌어도 본인 데이터 관리하기 (이름 + PIN)
 기본적으로는 브라우저에 저장된 기기 토큰으로 "내 항목"을 판단하지만, 그것만으로는 참가자가
@@ -61,6 +89,9 @@ Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태�
 - 항상 **1주(7일) 단위**로 W1, W2…를 계산하며, 이 설정은 **관리자만 변경**할 수 있습니다
   (일반 참가자는 조회만 가능)
 - 시작일 이전에는 "D-N", 총 주차를 넘기면 "리뷰 기간 종료"로 자동 전환됩니다
+- 같은 모달에서 **다음 리뷰 날짜**(선택)도 함께 설정할 수 있습니다. W주차 자동 계산과는
+  별개로, 팀이 합의한 구체적인 다음 리뷰 미팅 날짜를 상태 바에 "D-day" 형태로 고정 표시하는
+  용도입니다(비워두면 표시되지 않음. 슬라이드 Step 6 "Next Review" 반영)
 
 ## 배포 방법 (GitHub → Netlify 연결)
 Netlify Blobs를 사용하므로 **드래그앤드롭 배포는 불가능**하고, GitHub 저장소를 만들어
@@ -71,20 +102,23 @@ Netlify와 연결하는 방식만 지원됩니다.
 3. 빌드 설정은 `netlify.toml`에 이미 포함되어 있어 그대로 두면 됩니다 (Build command: `npm install`)
 4. 배포 완료 후, Netlify 사이트 설정 → **Environment variables**에서 `ADMIN_TOKEN` 값을
    원하는 관리자 비밀번호로 설정합니다. (설정하지 않으면 기본값 `za2030admin`이 사용됩니다.)
-5. 배포된 주소로 접속해 제출/수정/완료토글/함께보기/공감/CSV/관리자 삭제가 정상 동작하는지 확인합니다.
+5. 배포된 주소로 접속해 제출/수정/완료토글/함께보기/공감/응원 코멘트/CSV/관리자 삭제가 정상
+   동작하는지 확인합니다.
 
 ## 데이터 저장
-- Netlify Blobs 스토어 이름: `za2030-action-round` (기존 스포트라이트 세션 사이트와는
+- Netlify Blobs 스토어 이름: `za2030-commitment-board` (기존 스포트라이트 세션 사이트와는
   완전히 분리된 새 스토어이므로 데이터가 섞이지 않습니다)
 - 항목 필드: `id, deviceToken, name, team, pillarKey, pillarName, actionText, supportRequest,
-  createdAt, updatedAt, done, doneAt, likes, likedBy`
-- 진행 기간 설정(entries와 별도 키로 저장): `startDate, totalWeeks, updatedAt`
+  createdAt, updatedAt, done, doneAt, likes, likedBy, comments`
+  - `comments`: `[{ id, name, team, text, createdAt }]` — 동료 응원/지원 코멘트 배열
+- 진행 기간 설정(entries와 별도 키로 저장): `startDate, totalWeeks, nextReviewDate, updatedAt`
 - 본인 확인 레지스트리(entries와 별도 키 `owners`로 저장): 이름+소속 단위로
   `key, name, team, pinHash(SHA-256), deviceTokens[], createdAt, updatedAt`. PIN 원문은
   저장하지 않고 해시만 저장합니다.
-- API: `GET /api/action-round` (조회, `{ entries, total, config }` 반환), `POST /api/action-round`
-  (`action: submit | update | toggle-done | delete | like | unlike | clear-all | set-config |
-  verify-owner | reset-owner-pin`)
+- API: `GET /api/commitment-board` (조회, `{ entries, total, config }` 반환),
+  `POST /api/commitment-board` (`action: submit | update | toggle-done | delete | like |
+  unlike | add-comment | delete-comment | clear-all | set-config | verify-owner |
+  reset-owner-pin`)
 
 ## 저작권
 "© 2026 Joanna Lee. All rights reserved." 문구가 페이지 하단에 포함되어 있습니다.
