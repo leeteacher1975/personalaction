@@ -8,6 +8,10 @@ Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태�
 (기존 다짐을 덮어쓰지 않음) 등록일/수정일/완료 여부를 함께 기록합니다.
 
 ## 화면 구성
+- **상단 진행 기간 상태 바** (모든 탭에서 항상 보임): 관리자가 설정한 활동 시작일과 총 리뷰
+  주차를 기준으로, 오늘이 몇 주차(W1, W2…)인지와 이번 주 날짜 범위, 진행률 바를 모두에게
+  보여줍니다. 시작 전에는 "D-N", 기간이 끝나면 "리뷰 기간 종료"로 표시됩니다. 아직 설정 전이면
+  안내 문구만 표시됩니다.
 - **다짐 작성**: 이름·소속 입력 → 4대 축 중 하나 선택(예시 문장 표시) → "이번 주에 나는
   ___을 하겠습니다. 그 이유는 ___을 더 잘 실천하기 위해서입니다." 문장 실시간 미리보기 →
   팀/동료에게 받고 싶은 지원(선택 입력) → 제출. 제출할 때마다 새 다짐 이력으로 기록되며,
@@ -27,6 +31,14 @@ Truly Global / High-Performance Team ZEISS) 중 하나를 골라 다짐을 태�
   유지되고 수정일만 갱신), **완료 여부 토글**, **삭제**가 가능합니다
 - 다른 사람의 항목은 공감만 가능하고 수정·완료 처리·삭제는 할 수 없습니다
 
+## 진행 기간 설정
+- "함께 보기 → ⚙️ 관리자" 모달에서 **관리자 비밀번호 + 활동 시작일 + 총 리뷰 주차**를 입력하고
+  "기간 저장"을 누르면 팀 전체에 보이는 상단 상태 바에 즉시 반영됩니다(2초 폴링으로 다른
+  참가자 화면에도 곧 반영)
+- 항상 **1주(7일) 단위**로 W1, W2…를 계산하며, 이 설정은 **관리자만 변경**할 수 있습니다
+  (일반 참가자는 조회만 가능)
+- 시작일 이전에는 "D-N", 총 주차를 넘기면 "리뷰 기간 종료"로 자동 전환됩니다
+
 ## 배포 방법 (GitHub → Netlify 연결)
 Netlify Blobs를 사용하므로 **드래그앤드롭 배포는 불가능**하고, GitHub 저장소를 만들어
 Netlify와 연결하는 방식만 지원됩니다.
@@ -43,8 +55,9 @@ Netlify와 연결하는 방식만 지원됩니다.
   완전히 분리된 새 스토어이므로 데이터가 섞이지 않습니다)
 - 항목 필드: `id, deviceToken, name, team, pillarKey, pillarName, actionText, supportRequest,
   createdAt, updatedAt, done, doneAt, likes, likedBy`
-- API: `GET /api/action-round` (조회), `POST /api/action-round`
-  (`action: submit | update | toggle-done | delete | like | unlike | clear-all`)
+- 진행 기간 설정(entries와 별도 키로 저장): `startDate, totalWeeks, updatedAt`
+- API: `GET /api/action-round` (조회, `{ entries, total, config }` 반환), `POST /api/action-round`
+  (`action: submit | update | toggle-done | delete | like | unlike | clear-all | set-config`)
 
 ## 저작권
 "© 2026 Joanna Lee. All rights reserved." 문구가 페이지 하단에 포함되어 있습니다.

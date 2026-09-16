@@ -19,6 +19,15 @@ async function saveEntries(store, entries) {
   await store.setJSON('entries', entries);
 }
 
+async function loadConfig(store) {
+  const data = await store.get('config', { type: 'json' });
+  return data && typeof data === 'object' ? data : null;
+}
+
+async function saveConfig(store, config) {
+  await store.setJSON('config', config);
+}
+
 function genId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -36,7 +45,8 @@ export default async (req) => {
   try {
     if (req.method === 'GET') {
       const entries = await loadEntries(store);
-      return json({ entries, total: entries.length });
+      const config = await loadConfig(store);
+      return json({ entries, total: entries.length, config });
     }
 
     if (req.method === 'POST') {
@@ -155,6 +165,24 @@ export default async (req) => {
           }
           await saveEntries(store, []);
           return json({ ok: true });
+        }
+
+        // 팀 전체에 보이는 리뷰 기간(시작일 + 총 주차) 설정 — 관리자만 변경 가능
+        case 'set-config': {
+          const { adminPassword, startDate, totalWeeks } = body;
+          if (adminPassword !== ADMIN_TOKEN) {
+            return json({ error: '비밀번호가 올바르지 않습니다.' }, 401);
+          }
+          if (!startDate || !/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+            return json({ error: '시작일 형식이 올바르지 않습니다.' }, 400);
+          }
+          const weeks = parseInt(totalWeeks, 10);
+          if (!Number.isInteger(weeks) || weeks < 1 || weeks > 52) {
+            return json({ error: '총 주차는 1~52 사이 숫자여야 합니다.' }, 400);
+          }
+          const config = { startDate, totalWeeks: weeks, updatedAt: Date.now() };
+          await saveConfig(store, config);
+          return json({ ok: true, config });
         }
 
         default:

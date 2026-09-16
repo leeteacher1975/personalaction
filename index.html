@@ -42,6 +42,19 @@
   h1{font-size:28px;margin:6px 0 6px;font-weight:800;}
   .subtitle{font-size:15px;opacity:.92;margin:0;}
 
+  .status-bar{
+    background:var(--card);border:1px solid var(--border);border-radius:14px;
+    padding:14px 18px;margin-bottom:16px;
+  }
+  .status-bar .status-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+  .status-bar .status-label{font-size:16px;font-weight:800;color:var(--blue-dark);}
+  .status-bar .status-range{font-size:13px;color:var(--muted);}
+  .status-bar .bar-track{background:var(--bg);border-radius:999px;height:10px;overflow:hidden;}
+  .status-bar .bar-fill{background:linear-gradient(90deg, var(--blue), var(--blue-dark));height:100%;border-radius:999px;transition:width .3s;}
+  .status-bar.muted{color:var(--muted);}
+  .status-bar .status-empty{font-size:14px;color:var(--muted);}
+  .status-bar .status-ended .status-label{color:#21A366;}
+
   .view-tabs{
     display:flex;gap:8px;background:var(--card);border:1px solid var(--border);
     border-radius:14px;padding:6px;margin-bottom:20px;position:sticky;top:8px;z-index:20;
@@ -196,6 +209,8 @@
 
 <div class="wrap">
 
+  <div class="status-bar" id="statusBar"></div>
+
   <div class="view-tabs">
     <button id="tabWrite" class="active" onclick="switchView('write')">✍️ 다짐 작성</button>
     <button id="tabBoard" onclick="switchView('board')">👀 함께 보기</button>
@@ -265,6 +280,22 @@
       <label>관리자 비밀번호</label>
       <input type="text" id="adminPw" placeholder="비밀번호 입력" />
     </div>
+
+    <div class="field row2">
+      <div>
+        <label>활동 시작일</label>
+        <input type="date" id="cfgStartDate" />
+      </div>
+      <div>
+        <label>총 리뷰 주차</label>
+        <input type="number" id="cfgTotalWeeks" min="1" max="52" placeholder="예: 8" />
+      </div>
+    </div>
+    <button class="btn secondary" onclick="saveConfig()">기간 저장</button>
+    <div id="cfgMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
+
+    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;" />
+
     <button class="btn secondary" onclick="clearAll()">전체 삭제</button>
     <div id="adminMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
   </div>
@@ -313,8 +344,72 @@ let activeAxisFilter = 'all';   // 'all' | pillar key
 let supportOnly = false;        // 지원 요청만 보기
 let boardMode = 'feed';         // 'feed' | 'group'
 let pollTimer = null;
+let boardConfig = null;         // { startDate:'YYYY-MM-DD', totalWeeks, updatedAt } — 팀 전체 공통, 관리자만 변경
 
 function pillarByKey(k){ return PILLARS.find(p=>p.key===k); }
+
+// ---------- 진행 기간 상태 바 ----------
+
+function dateOnly(d){
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+function fmtShort(d){
+  return d.toLocaleDateString('ko-KR', {month:'numeric', day:'numeric'});
+}
+function addDays(d, n){
+  const r = new Date(d);
+  r.setDate(r.getDate()+n);
+  return r;
+}
+
+function renderStatusBar(){
+  const el = document.getElementById('statusBar');
+  if(!boardConfig || !boardConfig.startDate || !boardConfig.totalWeeks){
+    el.innerHTML = `<div class="status-empty">⚙️ 아직 팀 리뷰 기간이 설정되지 않았어요. 관리자가 "함께 보기 → ⚙️ 관리자"에서 설정할 수 있어요.</div>`;
+    return;
+  }
+  const total = boardConfig.totalWeeks;
+  const start = dateOnly(new Date(boardConfig.startDate + 'T00:00:00'));
+  const today = dateOnly(new Date());
+  const diffDays = Math.round((today - start) / 86400000);
+
+  if(diffDays < 0){
+    el.innerHTML = `
+      <div class="status-top">
+        <span class="status-label">🚀 시작 전 · D-${-diffDays}</span>
+        <span class="status-range">${fmtShort(start)} 시작 예정 · 총 ${total}주 진행</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+    `;
+    return;
+  }
+
+  const rawWeek = Math.floor(diffDays/7) + 1;
+  const ended = rawWeek > total;
+  const week = Math.min(rawWeek, total);
+  const weekStart = addDays(start, (week-1)*7);
+  const weekEnd = addDays(weekStart, 6);
+  const pct = Math.round((week/total)*100);
+
+  if(ended){
+    el.innerHTML = `
+      <div class="status-top status-ended">
+        <span class="status-label">🏁 리뷰 기간 종료</span>
+        <span class="status-range">${fmtShort(start)} ~ ${fmtShort(addDays(start, total*7-1))} · 총 ${total}주 진행 완료</span>
+      </div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+    `;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="status-top">
+      <span class="status-label">📍 지금은 W${week} (${week}/${total}주)</span>
+      <span class="status-range">${fmtShort(weekStart)} ~ ${fmtShort(weekEnd)} 진행 중</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%"></div></div>
+  `;
+}
 
 // ---------- 작성 폼 ----------
 
@@ -613,6 +708,8 @@ async function fetchEntries(){
     const res = await fetch(API);
     const data = await res.json();
     allEntries = data.entries || [];
+    boardConfig = data.config || null;
+    renderStatusBar();
     renderFilters();
     renderEntries();
   }catch(e){}
@@ -658,8 +755,45 @@ function downloadCsv(){
   a.click(); URL.revokeObjectURL(url);
 }
 
-function openAdmin(){ document.getElementById('adminModal').classList.add('active'); }
-function closeAdmin(){ document.getElementById('adminModal').classList.remove('active'); document.getElementById('adminMsg').textContent=''; }
+function openAdmin(){
+  if(boardConfig){
+    document.getElementById('cfgStartDate').value = boardConfig.startDate || '';
+    document.getElementById('cfgTotalWeeks').value = boardConfig.totalWeeks || '';
+  }
+  document.getElementById('adminModal').classList.add('active');
+}
+function closeAdmin(){
+  document.getElementById('adminModal').classList.remove('active');
+  document.getElementById('adminMsg').textContent='';
+  document.getElementById('cfgMsg').textContent='';
+}
+
+async function saveConfig(){
+  const pw = document.getElementById('adminPw').value;
+  const startDate = document.getElementById('cfgStartDate').value;
+  const totalWeeks = document.getElementById('cfgTotalWeeks').value;
+  const msg = document.getElementById('cfgMsg');
+  msg.style.color = '#B44';
+  if(!pw){ msg.textContent='비밀번호를 입력해 주세요.'; return; }
+  if(!startDate){ msg.textContent='시작일을 선택해 주세요.'; return; }
+  if(!totalWeeks || totalWeeks < 1){ msg.textContent='총 주차를 입력해 주세요.'; return; }
+  try{
+    const res = await fetch(API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'set-config', adminPassword: pw, startDate, totalWeeks })
+    });
+    if(!res.ok){
+      const data = await res.json().catch(()=>({}));
+      msg.textContent = data.error || '저장에 실패했어요.';
+      return;
+    }
+    msg.style.color = '#21A366';
+    msg.textContent = '기간이 저장됐어요.';
+    await fetchEntries();
+  }catch(e){
+    msg.textContent = '저장에 실패했어요.';
+  }
+}
 
 async function clearAll(){
   const pw = document.getElementById('adminPw').value;
@@ -681,6 +815,7 @@ async function clearAll(){
 restoreNameTeam();
 renderPillarGrid();
 renderPreview();
+renderStatusBar();
 renderFilters();
 fetchEntries();
 </script>
