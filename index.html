@@ -42,9 +42,10 @@
   h1{font-size:28px;margin:6px 0 6px;font-weight:800;}
   .subtitle{font-size:15px;opacity:.92;margin:0;}
 
+  .status-bar-wrap{position:relative;margin-bottom:16px;}
   .status-bar{
     background:var(--card);border:1px solid var(--border);border-radius:14px;
-    padding:14px 18px;margin-bottom:16px;
+    padding:14px 54px 14px 18px;
   }
   .status-bar .status-top{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
   .status-bar .status-label{font-size:16px;font-weight:800;color:var(--blue-dark);}
@@ -52,8 +53,13 @@
   .status-bar .bar-track{background:var(--bg);border-radius:999px;height:10px;overflow:hidden;}
   .status-bar .bar-fill{background:linear-gradient(90deg, var(--blue), var(--blue-dark));height:100%;border-radius:999px;transition:width .3s;}
   .status-bar.muted{color:var(--muted);}
-  .status-bar .status-empty{font-size:14px;color:var(--muted);}
+  .status-bar .status-empty{font-size:14px;color:var(--muted);padding-right:6px;}
   .status-bar .status-ended .status-label{color:#21A366;}
+  .status-admin-btn{
+    position:absolute;top:8px;right:8px;width:44px;height:44px;
+    border:1.5px solid var(--border);background:#fff;border-radius:10px;
+    font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
 
   .view-tabs{
     display:flex;gap:8px;background:var(--card);border:1px solid var(--border);
@@ -114,12 +120,19 @@
     padding:10px 14px;font-size:14px;margin-bottom:14px;
   }
 
-  .view-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .view-toggle-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .view-toggle{display:flex;gap:8px;flex:1 1 auto;min-width:220px;}
   .view-toggle button{
     flex:1;border:1.5px solid var(--border);background:#fff;border-radius:10px;
     padding:10px;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);min-height:44px;
   }
   .view-toggle button.active{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
+  .csv-btn{
+    flex:0 0 auto;border:1.5px solid var(--border);background:#fff;border-radius:10px;
+    padding:10px 16px;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);
+    min-height:44px;white-space:nowrap;
+  }
+  @media (max-width:480px){ .csv-btn{flex:1 1 100%;} }
 
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;}
   .chip{
@@ -170,12 +183,6 @@
 
   .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:15px;}
 
-  .toolbar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
-  .icon-btn{
-    border:1.5px solid var(--border);background:#fff;border-radius:10px;padding:9px 12px;
-    font-size:14px;font-weight:700;cursor:pointer;min-height:44px;
-  }
-
   .group{margin-bottom:22px;}
   .group-header{
     display:flex;justify-content:space-between;align-items:baseline;
@@ -209,7 +216,10 @@
 
 <div class="wrap">
 
-  <div class="status-bar" id="statusBar"></div>
+  <div class="status-bar-wrap">
+    <button class="status-admin-btn" onclick="openAdmin()" title="관리자" aria-label="관리자">⚙️</button>
+    <div class="status-bar" id="statusBar"></div>
+  </div>
 
   <div class="view-tabs">
     <button id="tabWrite" class="active" onclick="switchView('write')">✍️ 다짐 작성</button>
@@ -252,14 +262,12 @@
 
   <!-- 함께 보기 화면 -->
   <section id="boardView" class="view">
-    <div class="toolbar">
-      <button class="icon-btn" onclick="downloadCsv()">⬇ CSV 다운로드</button>
-      <button class="icon-btn" onclick="openAdmin()">⚙️ 관리자</button>
-    </div>
-
-    <div class="view-toggle">
-      <button id="modeFeed" class="active" onclick="setMode('feed')">🗂 전체 피드</button>
-      <button id="modeGroup" onclick="setMode('group')">🧑‍🤝‍🧑 참가자별 보기</button>
+    <div class="view-toggle-row">
+      <div class="view-toggle">
+        <button id="modeFeed" class="active" onclick="setMode('feed')">🗂 전체 피드</button>
+        <button id="modeGroup" onclick="setMode('group')">🧑‍🤝‍🧑 참가자별 보기</button>
+      </div>
+      <button class="csv-btn" onclick="downloadCsv()">⬇ CSV</button>
     </div>
 
     <div class="filters filters-row" id="filterChips"></div>
@@ -365,7 +373,7 @@ function addDays(d, n){
 function renderStatusBar(){
   const el = document.getElementById('statusBar');
   if(!boardConfig || !boardConfig.startDate || !boardConfig.totalWeeks){
-    el.innerHTML = `<div class="status-empty">⚙️ 아직 팀 리뷰 기간이 설정되지 않았어요. 관리자가 "함께 보기 → ⚙️ 관리자"에서 설정할 수 있어요.</div>`;
+    el.innerHTML = `<div class="status-empty">아직 팀 리뷰 기간이 설정되지 않았어요. 관리자가 오른쪽 ⚙️ 버튼에서 설정할 수 있어요.</div>`;
     return;
   }
   const total = boardConfig.totalWeeks;
