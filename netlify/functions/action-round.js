@@ -50,42 +50,71 @@ export default async (req) => {
       const entries = await loadEntries(store);
 
       switch (body.action) {
+        // 매 제출은 항상 새 이력(history) 항목으로 쌓임 — 기존 다짐을 덮어쓰지 않음.
+        // 정기 리뷰 시 참가자별 지난 다짐을 모두 조회할 수 있도록 하기 위함.
         case 'submit': {
-          const { deviceToken, name, team, pillarKey, pillarName, actionText } = body;
+          const { deviceToken, name, team, pillarKey, pillarName, actionText, supportRequest } = body;
           if (!deviceToken || !name || !team || !pillarKey || !pillarName || !actionText) {
             return json({ error: '필수 항목이 누락되었습니다.' }, 400);
           }
-          const idx = entries.findIndex((e) => e.deviceToken === deviceToken);
           const now = Date.now();
-          if (idx >= 0) {
-            entries[idx] = {
-              ...entries[idx],
-              name: String(name).slice(0, 30),
-              team: String(team).slice(0, 30),
-              pillarKey,
-              pillarName,
-              actionText: String(actionText).slice(0, 200),
-              ts: now,
-            };
-            await saveEntries(store, entries);
-            return json({ ok: true, updated: true, entry: entries[idx] });
-          } else {
-            const entry = {
-              id: genId(),
-              deviceToken,
-              name: String(name).slice(0, 30),
-              team: String(team).slice(0, 30),
-              pillarKey,
-              pillarName,
-              actionText: String(actionText).slice(0, 200),
-              ts: now,
-              likes: 0,
-              likedBy: [],
-            };
-            entries.push(entry);
-            await saveEntries(store, entries);
-            return json({ ok: true, updated: false, entry });
+          const entry = {
+            id: genId(),
+            deviceToken,
+            name: String(name).slice(0, 30),
+            team: String(team).slice(0, 30),
+            pillarKey,
+            pillarName,
+            actionText: String(actionText).slice(0, 200),
+            supportRequest: supportRequest ? String(supportRequest).slice(0, 200) : '',
+            createdAt: now,
+            updatedAt: now,
+            done: false,
+            doneAt: null,
+            likes: 0,
+            likedBy: [],
+          };
+          entries.push(entry);
+          await saveEntries(store, entries);
+          return json({ ok: true, entry });
+        }
+
+        // 본인 항목의 내용을 수정(등록일은 유지, 수정일만 갱신). 오탈자 등 정정 용도.
+        case 'update': {
+          const { id, deviceToken, pillarKey, pillarName, actionText, supportRequest } = body;
+          const idx = entries.findIndex((e) => e.id === id);
+          if (idx < 0) return json({ error: '항목을 찾을 수 없습니다.' }, 404);
+          if (entries[idx].deviceToken !== deviceToken) {
+            return json({ error: '본인 항목만 수정할 수 있습니다.' }, 403);
           }
+          if (!pillarKey || !pillarName || !actionText) {
+            return json({ error: '필수 항목이 누락되었습니다.' }, 400);
+          }
+          entries[idx] = {
+            ...entries[idx],
+            pillarKey,
+            pillarName,
+            actionText: String(actionText).slice(0, 200),
+            supportRequest: supportRequest ? String(supportRequest).slice(0, 200) : '',
+            updatedAt: Date.now(),
+          };
+          await saveEntries(store, entries);
+          return json({ ok: true, entry: entries[idx] });
+        }
+
+        // 본인 항목의 실천 완료 여부 토글
+        case 'toggle-done': {
+          const { id, deviceToken } = body;
+          const idx = entries.findIndex((e) => e.id === id);
+          if (idx < 0) return json({ error: '항목을 찾을 수 없습니다.' }, 404);
+          if (entries[idx].deviceToken !== deviceToken) {
+            return json({ error: '본인 항목만 변경할 수 있습니다.' }, 403);
+          }
+          const nowDone = !entries[idx].done;
+          entries[idx].done = nowDone;
+          entries[idx].doneAt = nowDone ? Date.now() : null;
+          await saveEntries(store, entries);
+          return json({ ok: true, entry: entries[idx] });
         }
 
         case 'delete': {

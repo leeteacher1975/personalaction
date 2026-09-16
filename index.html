@@ -67,6 +67,7 @@
   }
   textarea{resize:vertical;min-height:64px;}
   .field{margin-bottom:16px;}
+  .hint{font-size:13px;color:var(--muted);margin-top:-10px;margin-bottom:14px;}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
   @media (max-width:480px){.row2{grid-template-columns:1fr;}}
 
@@ -100,18 +101,29 @@
     padding:10px 14px;font-size:14px;margin-bottom:14px;
   }
 
-  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .view-toggle{display:flex;gap:8px;margin-bottom:14px;}
+  .view-toggle button{
+    flex:1;border:1.5px solid var(--border);background:#fff;border-radius:10px;
+    padding:10px;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);min-height:44px;
+  }
+  .view-toggle button.active{background:var(--blue-dark);border-color:var(--blue-dark);color:#fff;}
+
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;align-items:center;}
   .chip{
     border:1.5px solid var(--border);background:#fff;border-radius:999px;
     padding:9px 14px;font-size:14px;font-weight:700;cursor:pointer;color:var(--muted);
     min-height:38px;white-space:nowrap;
   }
   .chip.active{color:#fff;border-color:transparent;}
+  .chip.toggle{border-style:dashed;}
+  .chip.toggle.active{background:#B5590C;border-color:#B5590C;border-style:solid;}
+  .filters-row{margin-bottom:16px;}
 
   .entry{
     background:var(--card);border:1px solid var(--border);border-left:6px solid var(--dot);
     border-radius:12px;padding:16px;margin-bottom:12px;
   }
+  .entry.done{opacity:.72;}
   .entry .meta{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;}
   .entry .who{font-size:14px;color:var(--muted);}
   .entry .who b{color:var(--text);}
@@ -119,16 +131,29 @@
     display:inline-block;font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;
     color:#fff;background:var(--dot);white-space:nowrap;
   }
-  .entry .sentence{font-size:16px;font-weight:600;line-height:1.6;margin-bottom:10px;}
+  .tag.done-tag{background:#21A366;}
+  .entry .sentence{font-size:16px;font-weight:600;line-height:1.6;margin-bottom:8px;}
   .entry .sentence .hl{color:var(--dot);font-weight:800;}
-  .entry .actions{display:flex;justify-content:space-between;align-items:center;}
+  .entry .sentence.done-strike{text-decoration:line-through;text-decoration-color:#9AA6B8;}
+  .support-box{
+    background:#FFF7ED;border:1px solid #F5D9AE;border-radius:10px;padding:10px 12px;
+    font-size:14px;margin-bottom:10px;color:#7A4A12;
+  }
+  .support-box b{color:#B5590C;}
+  .entry .dates{font-size:12px;color:#A6AFBD;margin-bottom:10px;}
+  .entry .actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;}
   .like-btn{
     border:1.5px solid var(--border);background:#fff;border-radius:999px;padding:7px 14px;
     font-size:14px;cursor:pointer;font-weight:700;min-height:38px;
   }
   .like-btn.liked{border-color:#e0507a;color:#e0507a;background:#fff0f4;}
-  .ts{font-size:12px;color:#A6AFBD;}
-  .del-link{font-size:13px;color:#B44;background:none;border:none;cursor:pointer;font-weight:600;}
+  .owner-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+  .mini-link{
+    font-size:13px;background:none;border:1.5px solid var(--border);border-radius:8px;
+    cursor:pointer;font-weight:700;padding:6px 10px;min-height:36px;color:var(--text);
+  }
+  .mini-link.done-btn.done{border-color:#21A366;color:#21A366;background:#EAF7EF;}
+  .mini-link.del-link{color:#B44;border-color:#F3C6C6;}
 
   .empty{text-align:center;color:var(--muted);padding:40px 10px;font-size:15px;}
 
@@ -138,14 +163,22 @@
     font-size:14px;font-weight:700;cursor:pointer;min-height:44px;
   }
 
+  .group{margin-bottom:22px;}
+  .group-header{
+    display:flex;justify-content:space-between;align-items:baseline;
+    padding:0 4px;margin-bottom:8px;flex-wrap:wrap;gap:4px;
+  }
+  .group-header .name{font-size:16px;font-weight:800;}
+  .group-header .stats{font-size:13px;color:var(--muted);}
+
   footer{text-align:center;color:#9AA6B8;font-size:12px;padding:30px 16px 10px;}
 
   .modal-backdrop{
     display:none;position:fixed;inset:0;background:rgba(20,30,50,.45);z-index:100;
-    align-items:center;justify-content:center;padding:16px;
+    align-items:center;justify-content:center;padding:16px;overflow-y:auto;
   }
   .modal-backdrop.active{display:flex;}
-  .modal{background:#fff;border-radius:16px;padding:24px;max-width:360px;width:100%;}
+  .modal{background:#fff;border-radius:16px;padding:24px;max-width:420px;width:100%;margin:auto;}
   .modal h3{margin-top:0;font-size:18px;}
   .modal .btn{margin-top:10px;}
   .close-x{float:right;background:none;border:none;font-size:18px;cursor:pointer;color:var(--muted);}
@@ -171,9 +204,6 @@
   <!-- 작성 화면 -->
   <section id="writeView" class="view active">
     <div class="card">
-      <div id="resubmitNotice" class="notice" style="display:none;">
-        이미 제출한 다짐이 있어요. 다시 제출하면 기존 내용이 수정돼요.
-      </div>
       <div class="field row2">
         <div>
           <label>이름</label>
@@ -193,9 +223,15 @@
         <textarea id="inpAction" maxlength="200" placeholder="축을 먼저 선택하면 예시가 표시돼요"></textarea>
       </div>
 
+      <div class="field">
+        <label>팀/동료에게 받고 싶은 지원이 있나요? (선택)</label>
+        <textarea id="inpSupport" maxlength="200" placeholder="예: 이번 주 회의에서 5분만 시간 내어 피드백 부탁드려요"></textarea>
+      </div>
+
       <div class="preview" id="previewBox"></div>
 
-      <button class="btn" id="submitBtn" onclick="submitPledge()">다짐 제출하기</button>
+      <button class="btn" id="submitBtn" onclick="submitPledge()">다짐 등록하기</button>
+      <div class="hint" style="margin-top:10px;">제출할 때마다 새 다짐으로 기록돼요. 지난 다짐은 "함께 보기 → 참가자별 보기"에서 이력으로 확인할 수 있어요.</div>
     </div>
   </section>
 
@@ -205,7 +241,14 @@
       <button class="icon-btn" onclick="downloadCsv()">⬇ CSV 다운로드</button>
       <button class="icon-btn" onclick="openAdmin()">⚙️ 관리자</button>
     </div>
-    <div class="filters" id="filterChips"></div>
+
+    <div class="view-toggle">
+      <button id="modeFeed" class="active" onclick="setMode('feed')">🗂 전체 피드</button>
+      <button id="modeGroup" onclick="setMode('group')">🧑‍🤝‍🧑 참가자별 보기</button>
+    </div>
+
+    <div class="filters filters-row" id="filterChips"></div>
+
     <div id="entryList"></div>
     <div id="emptyState" class="empty" style="display:none;">아직 등록된 다짐이 없어요. 첫 다짐을 남겨보세요!</div>
   </section>
@@ -227,14 +270,32 @@
   </div>
 </div>
 
+<div class="modal-backdrop" id="editModal">
+  <div class="modal">
+    <button class="close-x" onclick="closeEdit()">✕</button>
+    <h3>다짐 수정</h3>
+    <div class="pillar-grid" id="editPillarGrid"></div>
+    <div class="field">
+      <label>이번 주에 나는 무엇을 하겠습니까?</label>
+      <textarea id="editAction" maxlength="200"></textarea>
+    </div>
+    <div class="field">
+      <label>팀/동료에게 받고 싶은 지원 (선택)</label>
+      <textarea id="editSupport" maxlength="200"></textarea>
+    </div>
+    <button class="btn" onclick="saveEdit()">저장</button>
+    <div id="editMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
+  </div>
+</div>
+
 <script>
 const API = '/api/action-round';
 
 const PILLARS = [
-  { key:'customer', name:'Customer at the Core', color:'var(--blue)', hex:'#2D6CDF', example:'고객 요청에 24시간 내 응답하겠습니다' },
-  { key:'speed', name:'Speed', color:'var(--orange)', hex:'#F5A623', example:'우리 보고 프로세스 중 하나를 단순화하겠습니다' },
-  { key:'global', name:'Truly Global', color:'var(--green)', hex:'#21A366', example:'다른 나라 동료와 좋은 사례를 하나 교환하겠습니다' },
-  { key:'hpt', name:'High-Performance Team ZEISS', color:'var(--purple)', hex:'#8E5CF6', example:'이번 주 프로젝트에 대해 팀원에게 피드백하겠습니다' }
+  { key:'customer', name:'Customer at the Core', hex:'#2D6CDF', example:'고객 요청에 24시간 내 응답하겠습니다' },
+  { key:'speed', name:'Speed', hex:'#F5A623', example:'우리 보고 프로세스 중 하나를 단순화하겠습니다' },
+  { key:'global', name:'Truly Global', hex:'#21A366', example:'다른 나라 동료와 좋은 사례를 하나 교환하겠습니다' },
+  { key:'hpt', name:'High-Performance Team ZEISS', hex:'#8E5CF6', example:'이번 주 프로젝트에 대해 팀원에게 피드백하겠습니다' }
 ];
 
 let deviceToken = localStorage.getItem('zar_device_token');
@@ -243,18 +304,24 @@ if(!deviceToken){
   localStorage.setItem('zar_device_token', deviceToken);
 }
 
-let selectedPillar = null;
+let selectedPillar = null;      // 작성 폼에서 선택된 축
+let editSelectedPillar = null;  // 수정 모달에서 선택된 축
+let editingId = null;
+
 let allEntries = [];
-let activeFilter = 'all';
+let activeAxisFilter = 'all';   // 'all' | pillar key
+let supportOnly = false;        // 지원 요청만 보기
+let boardMode = 'feed';         // 'feed' | 'group'
 let pollTimer = null;
-let myEntry = null;
 
 function pillarByKey(k){ return PILLARS.find(p=>p.key===k); }
+
+// ---------- 작성 폼 ----------
 
 function renderPillarGrid(){
   const grid = document.getElementById('pillarGrid');
   grid.innerHTML = PILLARS.map(p => `
-    <div class="pillar-card" data-key="${p.key}" data-selected="${selectedPillar===p.key}"
+    <div class="pillar-card" data-selected="${selectedPillar===p.key}"
       style="--dot:${p.hex}; --tint:${p.hex}18;" onclick="selectPillar('${p.key}')">
       <div class="name"><span class="dot" style="background:${p.hex}"></span>${p.name}</div>
       <div class="example">예: “${p.example}”</div>
@@ -281,15 +348,28 @@ function renderPreview(){
 }
 
 function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 document.getElementById('inpAction').addEventListener('input', renderPreview);
+
+// 이름/소속은 다음 제출을 편하게 하기 위한 편의 기억일 뿐, 실제 다짐 항목과는 무관
+function restoreNameTeam(){
+  const n = localStorage.getItem('zar_last_name');
+  const t = localStorage.getItem('zar_last_team');
+  if(n) document.getElementById('inpName').value = n;
+  if(t) document.getElementById('inpTeam').value = t;
+}
+function rememberNameTeam(name, team){
+  localStorage.setItem('zar_last_name', name);
+  localStorage.setItem('zar_last_team', team);
+}
 
 async function submitPledge(){
   const name = document.getElementById('inpName').value.trim();
   const team = document.getElementById('inpTeam').value.trim();
   const action = document.getElementById('inpAction').value.trim();
+  const support = document.getElementById('inpSupport').value.trim();
   if(!name || !team){ alert('이름과 소속을 입력해 주세요.'); return; }
   if(!selectedPillar){ alert('어떤 요소를 실천할지 선택해 주세요.'); return; }
   if(!action){ alert('이번 주에 할 일을 입력해 주세요.'); return; }
@@ -303,10 +383,18 @@ async function submitPledge(){
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         action:'submit', deviceToken, name, team,
-        pillarKey: p.key, pillarName: p.name, actionText: action
+        pillarKey: p.key, pillarName: p.name, actionText: action,
+        supportRequest: support
       })
     });
     if(!res.ok) throw new Error('submit failed');
+    rememberNameTeam(name, team);
+    // 새 다짐을 위해 축/할일/지원 요청은 초기화 (이름·소속은 유지)
+    selectedPillar = null;
+    document.getElementById('inpAction').value = '';
+    document.getElementById('inpSupport').value = '';
+    renderPillarGrid();
+    renderPreview();
     await fetchEntries();
     switchView('board');
   }catch(e){
@@ -316,49 +404,119 @@ async function submitPledge(){
   }
 }
 
-function renderFilters(){
-  const counts = { all: allEntries.length };
-  PILLARS.forEach(p => counts[p.key] = allEntries.filter(e=>e.pillarKey===p.key).length);
-  const chips = [{key:'all', name:'전체', hex:'#5B6B85'}, ...PILLARS];
-  const bar = document.getElementById('filterChips');
-  bar.innerHTML = chips.map(c => `
-    <button class="chip ${activeFilter===c.key?'active':''}"
-      style="${activeFilter===c.key?`background:${c.hex};border-color:${c.hex};`:''}"
-      onclick="setFilter('${c.key}')">${c.name} (${counts[c.key]||0})</button>
-  `).join('');
+// ---------- 함께 보기 ----------
+
+function setMode(mode){
+  boardMode = mode;
+  document.getElementById('modeFeed').classList.toggle('active', mode==='feed');
+  document.getElementById('modeGroup').classList.toggle('active', mode==='group');
+  renderEntries();
 }
 
-function setFilter(key){ activeFilter = key; renderFilters(); renderEntries(); }
+function renderFilters(){
+  const filtered0 = supportOnly ? allEntries.filter(e=>e.supportRequest) : allEntries;
+  const counts = { all: filtered0.length };
+  PILLARS.forEach(p => counts[p.key] = filtered0.filter(e=>e.pillarKey===p.key).length);
+  const chips = [{key:'all', name:'전체', hex:'#5B6B85'}, ...PILLARS];
+  const bar = document.getElementById('filterChips');
+  const axisChips = chips.map(c => `
+    <button class="chip ${activeAxisFilter===c.key?'active':''}"
+      style="${activeAxisFilter===c.key?`background:${c.hex};border-color:${c.hex};`:''}"
+      onclick="setAxisFilter('${c.key}')">${c.name} (${counts[c.key]||0})</button>
+  `).join('');
+  const supportCount = allEntries.filter(e=>e.supportRequest).length;
+  const supportChip = `
+    <button class="chip toggle ${supportOnly?'active':''}" onclick="toggleSupportOnly()">
+      🙋 지원 요청만 (${supportCount})
+    </button>`;
+  bar.innerHTML = axisChips + supportChip;
+}
+
+function setAxisFilter(key){ activeAxisFilter = key; renderFilters(); renderEntries(); }
+function toggleSupportOnly(){ supportOnly = !supportOnly; renderFilters(); renderEntries(); }
+
+function getFilteredEntries(){
+  let items = allEntries;
+  if(activeAxisFilter !== 'all') items = items.filter(e=>e.pillarKey===activeAxisFilter);
+  if(supportOnly) items = items.filter(e=>e.supportRequest);
+  return [...items].sort((a,b)=>b.createdAt-a.createdAt);
+}
+
+function formatDate(ts){
+  return new Date(ts).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+}
+
+function entryCardHtml(e){
+  const p = pillarByKey(e.pillarKey) || {hex:'#888', name:e.pillarName};
+  const liked = (e.likedBy||[]).includes(deviceToken);
+  const mine = e.deviceToken === deviceToken;
+  const edited = e.updatedAt && e.updatedAt !== e.createdAt;
+  let dateLine = `등록 ${formatDate(e.createdAt)}`;
+  if(edited) dateLine += ` · 수정 ${formatDate(e.updatedAt)}`;
+  if(e.done && e.doneAt) dateLine += ` · 완료 ${formatDate(e.doneAt)}`;
+
+  return `
+    <div class="entry ${e.done?'done':''}" style="--dot:${p.hex}">
+      <div class="meta">
+        <div class="who"><b>${escapeHtml(e.name)}</b> · ${escapeHtml(e.team)}</div>
+        <div>
+          <span class="tag" style="background:${p.hex}">${p.name}</span>
+          ${e.done ? `<span class="tag done-tag">✅ 완료</span>` : ''}
+        </div>
+      </div>
+      <div class="sentence ${e.done?'done-strike':''}">“이번 주에 나는 <span class="hl" style="color:${p.hex}">${escapeHtml(e.actionText)}</span> 을/를 하겠습니다.<br>
+      그 이유는 <span class="hl" style="color:${p.hex}">${p.name}</span> 을/를 더 잘 실천하기 위해서입니다.”</div>
+      ${e.supportRequest ? `<div class="support-box"><b>🙋 받고 싶은 지원:</b> ${escapeHtml(e.supportRequest)}</div>` : ''}
+      <div class="dates">${dateLine}</div>
+      <div class="actions">
+        <button class="like-btn ${liked?'liked':''}" onclick="toggleLike('${e.id}')">❤️ ${(e.likedBy||[]).length}</button>
+        ${mine ? `
+          <div class="owner-actions">
+            <button class="mini-link done-btn ${e.done?'done':''}" onclick="toggleDone('${e.id}')">${e.done ? '↩️ 진행중으로' : '✅ 완료로 표시'}</button>
+            <button class="mini-link" onclick="openEdit('${e.id}')">✏️ 수정</button>
+            <button class="mini-link del-link" onclick="deleteEntry('${e.id}')">삭제</button>
+          </div>` : ''}
+      </div>
+    </div>
+  `;
+}
 
 function renderEntries(){
   const list = document.getElementById('entryList');
   const empty = document.getElementById('emptyState');
-  let items = activeFilter==='all' ? allEntries : allEntries.filter(e=>e.pillarKey===activeFilter);
-  items = [...items].sort((a,b)=>b.ts-a.ts);
+  const items = getFilteredEntries();
+
   if(items.length===0){
     list.innerHTML=''; empty.style.display='block'; return;
   }
   empty.style.display='none';
-  list.innerHTML = items.map(e => {
-    const p = pillarByKey(e.pillarKey) || {hex:'#888', name:e.pillarName};
-    const liked = (e.likedBy||[]).includes(deviceToken);
-    const mine = e.deviceToken === deviceToken;
-    const date = new Date(e.ts).toLocaleString('ko-KR', {month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit'});
+
+  if(boardMode === 'feed'){
+    list.innerHTML = items.map(entryCardHtml).join('');
+    return;
+  }
+
+  // 참가자별 보기: deviceToken 기준으로 그룹핑, 최근 등록순으로 그룹 정렬
+  const groups = new Map();
+  items.forEach(e => {
+    if(!groups.has(e.deviceToken)) groups.set(e.deviceToken, []);
+    groups.get(e.deviceToken).push(e);
+  });
+  const groupArr = [...groups.values()].map(list => {
+    list.sort((a,b)=>b.createdAt-a.createdAt);
+    return list;
+  }).sort((a,b)=>b[0].createdAt - a[0].createdAt);
+
+  list.innerHTML = groupArr.map(group => {
+    const latest = group[0];
+    const doneCount = group.filter(e=>e.done).length;
     return `
-      <div class="entry" style="--dot:${p.hex}">
-        <div class="meta">
-          <div class="who"><b>${escapeHtml(e.name)}</b> · ${escapeHtml(e.team)}</div>
-          <span class="tag" style="background:${p.hex}">${p.name}</span>
+      <div class="group">
+        <div class="group-header">
+          <span class="name">${escapeHtml(latest.name)} · ${escapeHtml(latest.team)}</span>
+          <span class="stats">총 ${group.length}건 · 완료 ${doneCount}건</span>
         </div>
-        <div class="sentence">“이번 주에 나는 <span class="hl" style="color:${p.hex}">${escapeHtml(e.actionText)}</span> 을/를 하겠습니다.<br>
-        그 이유는 <span class="hl" style="color:${p.hex}">${p.name}</span> 을/를 더 잘 실천하기 위해서입니다.”</div>
-        <div class="actions">
-          <button class="like-btn ${liked?'liked':''}" onclick="toggleLike('${e.id}')">❤️ ${(e.likedBy||[]).length}</button>
-          <div>
-            <span class="ts">${date}</span>
-            ${mine ? `<button class="del-link" onclick="deleteEntry('${e.id}')">삭제</button>` : ''}
-          </div>
-        </div>
+        ${group.map(entryCardHtml).join('')}
       </div>
     `;
   }).join('');
@@ -377,8 +535,18 @@ async function toggleLike(id){
   }catch(e){}
 }
 
+async function toggleDone(id){
+  try{
+    await fetch(API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ action:'toggle-done', id, deviceToken })
+    });
+    await fetchEntries();
+  }catch(e){}
+}
+
 async function deleteEntry(id){
-  if(!confirm('내 다짐을 삭제할까요?')) return;
+  if(!confirm('이 다짐을 삭제할까요?')) return;
   try{
     await fetch(API, {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -388,33 +556,66 @@ async function deleteEntry(id){
   }catch(e){}
 }
 
+// ---------- 수정 모달 ----------
+
+function renderEditPillarGrid(){
+  const grid = document.getElementById('editPillarGrid');
+  grid.innerHTML = PILLARS.map(p => `
+    <div class="pillar-card" data-selected="${editSelectedPillar===p.key}"
+      style="--dot:${p.hex}; --tint:${p.hex}18;" onclick="selectEditPillar('${p.key}')">
+      <div class="name"><span class="dot" style="background:${p.hex}"></span>${p.name}</div>
+    </div>
+  `).join('');
+}
+function selectEditPillar(key){ editSelectedPillar = key; renderEditPillarGrid(); }
+
+function openEdit(id){
+  const e = allEntries.find(x=>x.id===id);
+  if(!e) return;
+  editingId = id;
+  editSelectedPillar = e.pillarKey;
+  document.getElementById('editAction').value = e.actionText;
+  document.getElementById('editSupport').value = e.supportRequest || '';
+  document.getElementById('editMsg').textContent = '';
+  renderEditPillarGrid();
+  document.getElementById('editModal').classList.add('active');
+}
+function closeEdit(){ document.getElementById('editModal').classList.remove('active'); editingId=null; }
+
+async function saveEdit(){
+  const actionText = document.getElementById('editAction').value.trim();
+  const supportRequest = document.getElementById('editSupport').value.trim();
+  if(!editSelectedPillar || !actionText){
+    document.getElementById('editMsg').textContent = '축과 할 일은 필수예요.';
+    return;
+  }
+  const p = pillarByKey(editSelectedPillar);
+  try{
+    const res = await fetch(API, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'update', id: editingId, deviceToken,
+        pillarKey: p.key, pillarName: p.name, actionText, supportRequest
+      })
+    });
+    if(!res.ok){ document.getElementById('editMsg').textContent = '수정에 실패했어요.'; return; }
+    closeEdit();
+    await fetchEntries();
+  }catch(e){
+    document.getElementById('editMsg').textContent = '수정에 실패했어요.';
+  }
+}
+
+// ---------- 공통 ----------
+
 async function fetchEntries(){
   try{
     const res = await fetch(API);
     const data = await res.json();
     allEntries = data.entries || [];
-    myEntry = allEntries.find(e=>e.deviceToken===deviceToken) || null;
-    applyMyEntryToForm();
     renderFilters();
     renderEntries();
   }catch(e){}
-}
-
-function applyMyEntryToForm(){
-  const notice = document.getElementById('resubmitNotice');
-  const btn = document.getElementById('submitBtn');
-  if(myEntry){
-    notice.style.display = 'block';
-    btn.textContent = '다짐 수정하기';
-    if(!document.getElementById('inpName').value) document.getElementById('inpName').value = myEntry.name;
-    if(!document.getElementById('inpTeam').value) document.getElementById('inpTeam').value = myEntry.team;
-    if(!document.getElementById('inpAction').value) document.getElementById('inpAction').value = myEntry.actionText;
-    if(!selectedPillar){ selectedPillar = myEntry.pillarKey; renderPillarGrid(); }
-    renderPreview();
-  }else{
-    notice.style.display = 'none';
-    btn.textContent = '다짐 제출하기';
-  }
 }
 
 function switchView(view){
@@ -438,11 +639,16 @@ document.addEventListener('visibilitychange', () => {
 });
 
 function downloadCsv(){
-  const header = ['이름','소속','축','다짐 문장','제출일시'];
+  const header = ['이름','소속','축','다짐 문장','지원 요청','등록일','수정일','완료 여부'];
   const rows = allEntries.map(e => {
     const p = pillarByKey(e.pillarKey) || {name:e.pillarName};
     const sentence = `이번 주에 나는 ${e.actionText} 을/를 하겠습니다. 그 이유는 ${p.name} 을/를 더 잘 실천하기 위해서입니다.`;
-    return [e.name, e.team, p.name, sentence, new Date(e.ts).toLocaleString('ko-KR')];
+    return [
+      e.name, e.team, p.name, sentence, e.supportRequest || '',
+      new Date(e.createdAt).toLocaleString('ko-KR'),
+      e.updatedAt && e.updatedAt !== e.createdAt ? new Date(e.updatedAt).toLocaleString('ko-KR') : '',
+      e.done ? 'Y' : 'N'
+    ];
   });
   const csv = [header, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
@@ -472,6 +678,7 @@ async function clearAll(){
   }
 }
 
+restoreNameTeam();
 renderPillarGrid();
 renderPreview();
 renderFilters();
