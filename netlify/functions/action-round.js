@@ -28,6 +28,46 @@ async function saveConfig(store, config) {
   await store.setJSON('config', config);
 }
 
+// 참가자 본인 확인(이름+소속 → PIN) 레지스트리. 기기가 바뀌어도 이름+PIN으로 본인 확인하면
+// 그 기기도 owner.deviceTokens에 추가되어, 같은 이름+소속의 모든 이력을 계속 관리할 수 있게 됨.
+async function loadOwners(store) {
+  const data = await store.get('owners', { type: 'json' });
+  return Array.isArray(data) ? data : [];
+}
+
+async function saveOwners(store, owners) {
+  await store.setJSON('owners', owners);
+}
+
+function ownerKeyOf(name, team) {
+  return `${String(name).trim()}|${String(team).trim()}`.toLowerCase();
+}
+
+async function hashPin(pin) {
+  const str = String(pin);
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const data = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  // Web Crypto가 없는 경우를 위한 최소 대비책(내부용 도구라 보안 강도보다 가용성 우선)
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return `fallback-${h.toString(16)}`;
+}
+
+function isValidPin(pin) {
+  return typeof pin === 'string' && /^\d{4}$/.test(pin);
+}
+
+// entry가 이 deviceToken의 소유인지 판단: 원래 등록한 기기이거나(레거시/기본 경로),
+// 그 entry의 이름+소속으로 본인 확인을 마친 owner의 기기 목록에 포함되어 있으면 인정.
+function isAuthorized(entry, deviceToken, owners) {
+  if (entry.deviceToken === deviceToken) return true;
+  const owner = owners.find((o) => o.key === ownerKeyOf(entry.name, entry.team));
+  return !!(owner && Array.isArray(owner.deviceTokens) && owner.deviceTokens.includes(deviceToken));
+}
+
 function genId() {
   return typeof crypto !== 'undefined' && crypto.randomUUID
     ? crypto.randomUUID()
@@ -58,15 +98,50 @@ export default async (req) => {
       }
 
       const entries = await loadEntries(store);
+      const owners = await loadOwners(store);
 
       switch (body.action) {
         // 매 제출은 항상 새 이력(history) 항목으로 쌓임 — 기존 다짐을 덮어쓰지 않음.
         // 정기 리뷰 시 참가자별 지난 다짐을 모두 조회할 수 있도록 하기 위함.
         case 'submit': {
-          const { deviceToken, name, team, pillarKey, pillarName, actionText, supportRequest } = body;
+          const { deviceToken, name, team, pillarKey, pillarName, actionText, supportRequest, pin } = body;
           if (!deviceToken || !name || !team || !pillarKey || !pillarName || !actionText) {
             return json({ error: '필수 항목이 누락되었습니다.' }, 400);
           }
+
+          const key = ownerKeyOf(name, team);
+          const ownerIdx = owners.findIndex((o) => o.key === key);
+          const now0 = Date.now();
+
+          if (ownerIdx < 0) {
+            // 이 이름+소속으로 처음 등록 — 앞으로 쓸 PIN을 반드시 설정
+            if (!isValidPin(pin)) {
+              return json({ error: 'PIN_REQUIRED', message: '본인 확인을 위해 4자리 PIN을 새로 만들어주세요.' }, 400);
+            }
+            owners.push({
+              key, name: String(name).trim(), team: String(team).trim(),
+              pinHash: await hashPin(pin),
+              deviceTokens: [deviceToken],
+              createdAt: now0, updatedAt: now0,
+            });
+          } else {
+            const owner = owners[ownerIdx];
+            if (!owner.deviceTokens.includes(deviceToken)) {
+              // 이미 등록된 이름인데 처음 보는 기기 — PIN 확인 필요
+              if (!isValidPin(pin)) {
+                return json({ error: 'PIN_REQUIRED', message: '이미 등록된 이름이에요. 처음 설정한 PIN을 입력해주세요.' }, 400);
+              }
+              const hash = await hashPin(pin);
+              if (hash !== owner.pinHash) {
+                return json({ error: 'PIN_MISMATCH', message: 'PIN이 일치하지 않아요.' }, 403);
+              }
+              owner.deviceTokens.push(deviceToken);
+              owner.updatedAt = now0;
+            }
+            // 이미 인식된 기기면 pin 없이도 그대로 진행(빠른 경로)
+          }
+          await saveOwners(store, owners);
+
           const now = Date.now();
           const entry = {
             id: genId(),
@@ -89,12 +164,40 @@ export default async (req) => {
           return json({ ok: true, entry });
         }
 
+        // 다른 기기에서 "이름+소속+PIN"으로 본인 확인 — 이 기기를 그 사람의 기존 이력에 연결.
+        // 새 다짐을 굳이 쓰지 않아도, 지난 다짐을 관리(수정/완료/삭제)하러 올 때 사용.
+        case 'verify-owner': {
+          const { name, team, pin, deviceToken } = body;
+          if (!name || !team || !deviceToken) {
+            return json({ error: '필수 항목이 누락되었습니다.' }, 400);
+          }
+          const key = ownerKeyOf(name, team);
+          const owner = owners.find((o) => o.key === key);
+          if (!owner) {
+            return json({ error: 'OWNER_NOT_FOUND', message: '등록된 이름을 찾을 수 없어요. 먼저 다짐을 제출해 주세요.' }, 404);
+          }
+          if (owner.deviceTokens.includes(deviceToken)) {
+            return json({ ok: true, alreadyVerified: true });
+          }
+          if (!isValidPin(pin)) {
+            return json({ error: 'PIN_REQUIRED', message: 'PIN을 입력해주세요.' }, 400);
+          }
+          const hash = await hashPin(pin);
+          if (hash !== owner.pinHash) {
+            return json({ error: 'PIN_MISMATCH', message: 'PIN이 일치하지 않아요.' }, 403);
+          }
+          owner.deviceTokens.push(deviceToken);
+          owner.updatedAt = Date.now();
+          await saveOwners(store, owners);
+          return json({ ok: true, alreadyVerified: false });
+        }
+
         // 본인 항목의 내용을 수정(등록일은 유지, 수정일만 갱신). 오탈자 등 정정 용도.
         case 'update': {
           const { id, deviceToken, pillarKey, pillarName, actionText, supportRequest } = body;
           const idx = entries.findIndex((e) => e.id === id);
           if (idx < 0) return json({ error: '항목을 찾을 수 없습니다.' }, 404);
-          if (entries[idx].deviceToken !== deviceToken) {
+          if (!isAuthorized(entries[idx], deviceToken, owners)) {
             return json({ error: '본인 항목만 수정할 수 있습니다.' }, 403);
           }
           if (!pillarKey || !pillarName || !actionText) {
@@ -117,7 +220,7 @@ export default async (req) => {
           const { id, deviceToken } = body;
           const idx = entries.findIndex((e) => e.id === id);
           if (idx < 0) return json({ error: '항목을 찾을 수 없습니다.' }, 404);
-          if (entries[idx].deviceToken !== deviceToken) {
+          if (!isAuthorized(entries[idx], deviceToken, owners)) {
             return json({ error: '본인 항목만 변경할 수 있습니다.' }, 403);
           }
           const nowDone = !entries[idx].done;
@@ -131,7 +234,7 @@ export default async (req) => {
           const { id, deviceToken } = body;
           const idx = entries.findIndex((e) => e.id === id);
           if (idx < 0) return json({ error: '항목을 찾을 수 없습니다.' }, 404);
-          if (entries[idx].deviceToken !== deviceToken) {
+          if (!isAuthorized(entries[idx], deviceToken, owners)) {
             return json({ error: '본인 항목만 삭제할 수 있습니다.' }, 403);
           }
           entries.splice(idx, 1);
@@ -183,6 +286,24 @@ export default async (req) => {
           const config = { startDate, totalWeeks: weeks, updatedAt: Date.now() };
           await saveConfig(store, config);
           return json({ ok: true, config });
+        }
+
+        // 참가자가 PIN을 잊었을 때 관리자가 초기화 — 해당 이름+소속의 owner 레코드를 삭제함.
+        // (과거 항목 자체는 그대로 남고, 다음 제출 때 새 PIN을 다시 설정하게 됨. 원래 기기에서는
+        // deviceToken이 그대로 일치하므로 PIN 없이도 계속 본인 항목을 관리할 수 있음)
+        case 'reset-owner-pin': {
+          const { adminPassword, name, team } = body;
+          if (adminPassword !== ADMIN_TOKEN) {
+            return json({ error: '비밀번호가 올바르지 않습니다.' }, 401);
+          }
+          if (!name || !team) {
+            return json({ error: '이름과 소속을 입력해주세요.' }, 400);
+          }
+          const key = ownerKeyOf(name, team);
+          const next = owners.filter((o) => o.key !== key);
+          const removed = next.length !== owners.length;
+          await saveOwners(store, next);
+          return json({ ok: true, removed });
         }
 
         default:
