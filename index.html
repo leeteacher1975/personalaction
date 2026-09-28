@@ -203,6 +203,13 @@
   .group-header .name{font-size:16px;font-weight:800;}
   .group-header .stats{font-size:13px;color:var(--muted);}
 
+  .week-subgroup{margin-bottom:14px;}
+  .week-subgroup:last-child{margin-bottom:0;}
+  .week-subheader{
+    font-size:13px;font-weight:800;color:var(--blue-dark);background:#EAF1FD;
+    border-radius:8px;padding:5px 12px;margin:0 4px 8px;display:inline-block;
+  }
+
   footer{text-align:center;color:#9AA6B8;font-size:12px;padding:30px 16px 10px;}
 
   .modal-backdrop{
@@ -267,8 +274,10 @@
 
       <div class="preview" id="previewBox"></div>
 
+      <div class="hint" id="writeDateLine" style="margin-top:-10px;"></div>
+
       <button class="btn" id="submitBtn" onclick="submitPledge()">다짐 등록하기</button>
-      <div class="hint" style="margin-top:10px;">제출할 때마다 새 다짐으로 기록돼요. 이름·소속으로 묶여서 "함께 보기 → 참가자별 보기"에서 누구나(어느 기기에서든) 지난 다짐 이력을 확인할 수 있어요.</div>
+      <div class="hint" style="margin-top:10px;">제출할 때마다 새 다짐으로 기록되고, 작성일 기준 주차가 자동으로 함께 저장돼요. 이름·소속으로 묶여서 "함께 보기 → 참가자별 보기"에서 누구나(어느 기기에서든) 주차별로 지난 다짐 이력을 확인할 수 있어요.</div>
     </div>
   </section>
 
@@ -480,6 +489,44 @@ function renderStatusBar(){
   `;
 }
 
+// 관리자가 설정한 활동 시작일 기준으로, 임의의 시각(ts)이 몇 주차에 해당하는지 계산.
+// 기간 설정이 없으면 null, 시작일 이전이면 0("시작 전"), 그 외에는 1부터 시작하는 주차 번호.
+// (총 주차를 넘어서 등록된 경우에도 실제 경과 주차 그대로 보여줌 — 리뷰 기간 종료 후 등록 표시용)
+function weekIndexOf(ts){
+  if(!boardConfig || !boardConfig.startDate) return null;
+  const start = dateOnly(new Date(boardConfig.startDate + 'T00:00:00'));
+  const d = dateOnly(new Date(ts));
+  const diffDays = Math.round((d - start) / 86400000);
+  if(diffDays < 0) return 0;
+  return Math.floor(diffDays/7) + 1;
+}
+function weekRangeLabel(w){
+  if(!boardConfig || !boardConfig.startDate || w < 1) return '';
+  const start = dateOnly(new Date(boardConfig.startDate + 'T00:00:00'));
+  const ws = addDays(start, (w-1)*7);
+  const we = addDays(ws, 6);
+  return `${fmtShort(ws)}~${fmtShort(we)}`;
+}
+
+// 다짐 작성 화면에 "오늘이 몇 주차인지"를 보여주는 안내 줄 — 실제 저장되는 값은 아니고,
+// 제출 시점의 createdAt으로부터 항상 다시 계산되는 값이라 별도 입력 필드는 두지 않음.
+function renderWriteDateLine(){
+  const el = document.getElementById('writeDateLine');
+  if(!el) return;
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('ko-KR', {year:'numeric', month:'numeric', day:'numeric', weekday:'short'});
+  const w = weekIndexOf(now.getTime());
+  let weekStr = '';
+  if(w === null){
+    weekStr = '';
+  }else if(w === 0){
+    weekStr = ' · 아직 리뷰 기간 시작 전이에요';
+  }else{
+    weekStr = ` · ${w}주차 다짐으로 기록돼요 (${weekRangeLabel(w)})`;
+  }
+  el.textContent = `📅 작성일: ${dateStr}${weekStr}`;
+}
+
 // ---------- 작성 폼 ----------
 
 function renderPillarGrid(){
@@ -622,6 +669,8 @@ function entryCardHtml(e){
   const mine = e.deviceToken === deviceToken;
   const edited = e.updatedAt && e.updatedAt !== e.createdAt;
   let dateLine = `등록 ${formatDate(e.createdAt)}`;
+  const entryWeek = weekIndexOf(e.createdAt);
+  if(entryWeek !== null && entryWeek > 0) dateLine += ` · ${entryWeek}주차`;
   if(edited) dateLine += ` · 수정 ${formatDate(e.updatedAt)}`;
   if(e.done && e.doneAt) dateLine += ` · 완료 ${formatDate(e.doneAt)}`;
 
@@ -684,16 +733,43 @@ function renderEntries(){
     return list;
   }).sort((a,b)=>b[0].createdAt - a[0].createdAt);
 
+  const hasWeeks = !!(boardConfig && boardConfig.startDate);
+
   list.innerHTML = groupArr.map(group => {
     const latest = group[0];
     const doneCount = group.filter(e=>e.done).length;
+
+    let bodyHtml;
+    if(hasWeeks){
+      // 관리자가 리뷰 기간을 설정해둔 경우: 같은 사람의 다짐을 주차별로 다시 소그룹화해서
+      // 보여줌(최근 주차가 위로). 기간 설정이 없으면 아래 else처럼 그냥 등록순 목록만 보여줌.
+      const byWeek = new Map();
+      group.forEach(e => {
+        const w = weekIndexOf(e.createdAt);
+        if(!byWeek.has(w)) byWeek.set(w, []);
+        byWeek.get(w).push(e);
+      });
+      const weekKeys = [...byWeek.keys()].sort((a,b)=>b-a);
+      bodyHtml = weekKeys.map(w => {
+        const label = w === 0 ? '리뷰 기간 시작 전 등록' : `${w}주차 (${weekRangeLabel(w)})`;
+        return `
+          <div class="week-subgroup">
+            <div class="week-subheader">${label}</div>
+            ${byWeek.get(w).map(entryCardHtml).join('')}
+          </div>
+        `;
+      }).join('');
+    } else {
+      bodyHtml = group.map(entryCardHtml).join('');
+    }
+
     return `
       <div class="group">
         <div class="group-header">
           <span class="name">${escapeHtml(latest.name)} · ${escapeHtml(latest.team)}</span>
           <span class="stats">총 ${group.length}건 · 완료 ${doneCount}건</span>
         </div>
-        ${group.map(entryCardHtml).join('')}
+        ${bodyHtml}
       </div>
     `;
   }).join('');
@@ -834,6 +910,7 @@ async function fetchEntries(){
     allEntries = data.entries || [];
     boardConfig = data.config || null;
     renderStatusBar();
+    renderWriteDateLine();
     renderFilters();
     renderEntries();
   }catch(e){}
@@ -943,6 +1020,7 @@ restoreNameTeam();
 renderPillarGrid();
 renderPreview();
 renderStatusBar();
+renderWriteDateLine();
 renderFilters();
 fetchEntries();
 </script>
