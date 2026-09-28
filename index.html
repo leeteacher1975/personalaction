@@ -185,9 +185,6 @@
   .mini-link.done-btn.done{border-color:#21A366;color:#21A366;background:#EAF7EF;}
   .mini-link.del-link{color:#B44;border-color:#F3C6C6;}
 
-  .verify-link-row{margin:-6px 0 16px;}
-  .pin-input{max-width:160px;}
-
   .comments-section{margin-top:10px;padding-top:10px;border-top:1px solid var(--border);}
   .comment-item{
     background:#F4F7FC;border-radius:10px;padding:8px 12px;font-size:13.5px;
@@ -255,16 +252,6 @@
         </div>
       </div>
 
-      <div class="field" id="pinFieldWrap" style="display:none;">
-        <label>본인 확인 PIN (4자리)</label>
-        <input type="text" inputmode="numeric" maxlength="4" id="inpPin" class="pin-input" placeholder="숫자 4자리" />
-        <div class="hint" id="pinHint" style="margin-top:6px;"></div>
-      </div>
-
-      <div class="verify-link-row">
-        <button type="button" class="mini-link" onclick="openVerify()">🔑 다른 기기에서 등록한 적 있으신가요? 본인 인증하기</button>
-      </div>
-
       <label>어떤 요소를 더 잘 실천하고 싶나요?</label>
       <div class="pillar-grid" id="pillarGrid"></div>
 
@@ -281,7 +268,7 @@
       <div class="preview" id="previewBox"></div>
 
       <button class="btn" id="submitBtn" onclick="submitPledge()">다짐 등록하기</button>
-      <div class="hint" style="margin-top:10px;">제출할 때마다 새 다짐으로 기록돼요. 지난 다짐은 "함께 보기 → 참가자별 보기"에서 이력으로 확인할 수 있어요.</div>
+      <div class="hint" style="margin-top:10px;">제출할 때마다 새 다짐으로 기록돼요. 이름·소속으로 묶여서 "함께 보기 → 참가자별 보기"에서 누구나(어느 기기에서든) 지난 다짐 이력을 확인할 수 있어요.</div>
     </div>
   </section>
 
@@ -334,48 +321,8 @@
 
     <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;" />
 
-    <div class="hint" style="margin-top:0;">참가자가 PIN을 잊어버렸을 때, 이름·소속을 입력해 초기화할 수 있어요. 초기화 후 다음 제출 때 새 PIN을 설정하면 돼요(기존 기기에서는 PIN 없이도 계속 본인 항목을 관리할 수 있어요).</div>
-    <div class="field row2">
-      <div>
-        <label>이름</label>
-        <input type="text" id="resetPinName" placeholder="예: 이지영" />
-      </div>
-      <div>
-        <label>소속(팀)</label>
-        <input type="text" id="resetPinTeam" placeholder="예: SSC IT/Data" />
-      </div>
-    </div>
-    <button class="btn secondary" onclick="resetOwnerPin()">PIN 초기화</button>
-    <div id="resetPinMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
-
-    <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;" />
-
     <button class="btn secondary" onclick="clearAll()">전체 삭제</button>
     <div id="adminMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="verifyModal">
-  <div class="modal">
-    <button class="close-x" onclick="closeVerify()">✕</button>
-    <h3>본인 확인</h3>
-    <div class="hint" style="margin-top:0;">다른 기기에서 이미 다짐을 등록하셨다면, 그때 만든 이름·소속·PIN을 입력해 주세요. 이 기기에서도 내 다짐을 계속 관리할 수 있게 돼요.</div>
-    <div class="field row2">
-      <div>
-        <label>이름</label>
-        <input type="text" id="verifyName" maxlength="30" />
-      </div>
-      <div>
-        <label>소속(팀)</label>
-        <input type="text" id="verifyTeam" maxlength="30" />
-      </div>
-    </div>
-    <div class="field">
-      <label>PIN (4자리)</label>
-      <input type="text" inputmode="numeric" maxlength="4" id="verifyPin" class="pin-input" placeholder="숫자 4자리" />
-    </div>
-    <button class="btn" onclick="submitVerify()">확인</button>
-    <div id="verifyMsg" style="font-size:13px;color:#B44;margin-top:8px;"></div>
   </div>
 </div>
 
@@ -437,26 +384,11 @@ if(!deviceToken){
   localStorage.setItem('zar_device_token', deviceToken);
 }
 
-// 이름+소속 → PIN 본인 확인 레지스트리(서버)와 짝을 이루는 "이 브라우저가 이미 확인된 사람들" 목록.
-// 여기 있으면 이 브라우저에서는 PIN 없이 바로 해당 이름+소속의 다짐을 관리(수정/완료/삭제)할 수 있음.
-function ownerKeyOf(name, team){
+// 이름+소속을 하나의 키로 합치는 용도(참가자별 보기 그룹핑에만 사용 — 조회는 기기/PIN과
+// 무관하게 누구나 항상 가능하므로, 별도 본인 확인 장치는 두지 않음).
+function personKey(name, team){
   return `${String(name).trim()}|${String(team).trim()}`.toLowerCase();
 }
-function loadVerifiedOwners(){
-  try{
-    const raw = localStorage.getItem('zar_verified_owners');
-    return new Set(raw ? JSON.parse(raw) : []);
-  }catch(e){ return new Set(); }
-}
-function saveVerifiedOwners(){
-  try{ localStorage.setItem('zar_verified_owners', JSON.stringify([...verifiedOwners])); }catch(e){}
-}
-function addVerifiedOwner(key){
-  verifiedOwners.add(key);
-  saveVerifiedOwners();
-}
-let verifiedOwners = loadVerifiedOwners();
-let pinNeeded = false;   // 지금 작성 폼에서 PIN 입력이 필요한 상태인지
 
 let selectedPillar = null;      // 작성 폼에서 선택된 축
 let editSelectedPillar = null;  // 수정 모달에서 선택된 축
@@ -467,7 +399,7 @@ let activeAxisFilter = 'all';   // 'all' | pillar key
 let supportOnly = false;        // 지원 요청만 보기
 let boardMode = 'feed';         // 'feed' | 'group'
 let pollTimer = null;
-let boardConfig = null;         // { startDate:'YYYY-MM-DD', totalWeeks, updatedAt } — 팀 전체 공통, 관리자만 변경
+let boardConfig = null;         // { startDate:'YYYY-MM-DD', totalWeeks, nextReviewDate, updatedAt } — 팀 전체 공통, 관리자만 변경
 
 function pillarByKey(k){ return PILLARS.find(p=>p.key===k); }
 
@@ -597,46 +529,14 @@ function rememberNameTeam(name, team){
   localStorage.setItem('zar_last_team', team);
 }
 
-// 이름/소속을 입력할 때마다: 이미 이 브라우저에서 확인된 사람이면 PIN 칸을 숨기고,
-// 아니면 PIN 칸을 보여주면서 "처음"인지 "이미 등록된 이름"인지 힌트를 알려줌(참고용 안내일 뿐,
-// 실제 판단은 서버가 함).
-function updatePinFieldVisibility(){
-  const wrap = document.getElementById('pinFieldWrap');
-  const hint = document.getElementById('pinHint');
-  const name = document.getElementById('inpName').value.trim();
-  const team = document.getElementById('inpTeam').value.trim();
-  if(!name || !team){
-    wrap.style.display = 'none';
-    pinNeeded = false;
-    return;
-  }
-  const key = ownerKeyOf(name, team);
-  if(verifiedOwners.has(key)){
-    wrap.style.display = 'none';
-    pinNeeded = false;
-    return;
-  }
-  wrap.style.display = 'block';
-  pinNeeded = true;
-  const seenBefore = allEntries.some(e => ownerKeyOf(e.name, e.team) === key);
-  hint.textContent = seenBefore
-    ? '이미 등록된 이름이에요. 처음 설정했던 PIN을 입력해 주세요.'
-    : '처음 사용하는 이름이에요. 앞으로 이 이름으로 다짐을 관리할 때 쓸 4자리 PIN을 만들어 주세요.';
-}
-document.getElementById('inpName').addEventListener('input', updatePinFieldVisibility);
-document.getElementById('inpTeam').addEventListener('input', updatePinFieldVisibility);
-
 async function submitPledge(){
   const name = document.getElementById('inpName').value.trim();
   const team = document.getElementById('inpTeam').value.trim();
   const action = document.getElementById('inpAction').value.trim();
   const support = document.getElementById('inpSupport').value.trim();
-  const pin = document.getElementById('inpPin').value.trim();
   if(!name || !team){ alert('이름과 소속을 입력해 주세요.'); return; }
   if(!selectedPillar){ alert('어떤 요소를 실천할지 선택해 주세요.'); return; }
   if(!action){ alert('이번 주에 할 일을 입력해 주세요.'); return; }
-  updatePinFieldVisibility();
-  if(pinNeeded && !/^\d{4}$/.test(pin)){ alert('본인 확인용 4자리 PIN을 입력해 주세요.'); return; }
 
   const p = pillarByKey(selectedPillar);
   const btn = document.getElementById('submitBtn');
@@ -647,27 +547,21 @@ async function submitPledge(){
       pillarKey: p.key, pillarName: p.name, actionText: action,
       supportRequest: support
     };
-    if(pinNeeded) body.pin = pin;
     const res = await fetch(API, {
       method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
     });
     const data = await res.json().catch(()=>({}));
     if(!res.ok){
-      if(data.error === 'PIN_MISMATCH'){ alert('PIN이 일치하지 않아요. 처음 설정했던 PIN을 다시 확인해 주세요.'); }
-      else if(data.error === 'PIN_REQUIRED'){ alert(data.message || '본인 확인용 PIN을 입력해 주세요.'); }
-      else { alert(data.message || data.error || '제출에 실패했어요.'); }
+      alert(data.message || data.error || '제출에 실패했어요.');
       return;
     }
-    if(pinNeeded) addVerifiedOwner(ownerKeyOf(name, team));
     rememberNameTeam(name, team);
-    // 새 다짐을 위해 축/할일/지원 요청/PIN은 초기화 (이름·소속은 유지)
+    // 새 다짐을 위해 축/할일/지원 요청은 초기화 (이름·소속은 유지)
     selectedPillar = null;
     document.getElementById('inpAction').value = '';
     document.getElementById('inpSupport').value = '';
-    document.getElementById('inpPin').value = '';
     renderPillarGrid();
     renderPreview();
-    updatePinFieldVisibility();
     await fetchEntries();
     switchView('board');
   }catch(e){
@@ -722,7 +616,10 @@ function formatDate(ts){
 function entryCardHtml(e){
   const p = pillarByKey(e.pillarKey) || {hex:'#888', name:e.pillarName};
   const liked = (e.likedBy||[]).includes(deviceToken);
-  const mine = e.deviceToken === deviceToken || verifiedOwners.has(ownerKeyOf(e.name, e.team));
+  // "본인 항목" 여부는 처음 등록한 이 브라우저(deviceToken)인지로만 판단 — 다른 기기에서는
+  // 조회만 가능하고 수정/완료/삭제는 원래 등록했던 기기에서만 가능함(세션 중에는 보통 호스트가
+  // 완료 체크를 진행하므로 다기기 편집 지원은 두지 않기로 함).
+  const mine = e.deviceToken === deviceToken;
   const edited = e.updatedAt && e.updatedAt !== e.createdAt;
   let dateLine = `등록 ${formatDate(e.createdAt)}`;
   if(edited) dateLine += ` · 수정 ${formatDate(e.updatedAt)}`;
@@ -774,11 +671,13 @@ function renderEntries(){
     return;
   }
 
-  // 참가자별 보기: deviceToken 기준으로 그룹핑, 최근 등록순으로 그룹 정렬
+  // 참가자별 보기: 이름+소속 기준으로 그룹핑(기기와 무관 — 같은 사람이 다른 기기에서 등록했어도
+  // 이름+소속이 같으면 한 그룹으로 모여서 보임), 최근 등록순으로 그룹 정렬
   const groups = new Map();
   items.forEach(e => {
-    if(!groups.has(e.deviceToken)) groups.set(e.deviceToken, []);
-    groups.get(e.deviceToken).push(e);
+    const key = personKey(e.name, e.team);
+    if(!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(e);
   });
   const groupArr = [...groups.values()].map(list => {
     list.sort((a,b)=>b.createdAt-a.createdAt);
@@ -926,51 +825,6 @@ async function submitComment(){
   }
 }
 
-// ---------- 본인 확인(다른 기기) ----------
-
-function openVerify(){
-  document.getElementById('verifyName').value = document.getElementById('inpName').value.trim();
-  document.getElementById('verifyTeam').value = document.getElementById('inpTeam').value.trim();
-  document.getElementById('verifyPin').value = '';
-  const msg = document.getElementById('verifyMsg');
-  msg.style.color = '#B44';
-  msg.textContent = '';
-  document.getElementById('verifyModal').classList.add('active');
-}
-function closeVerify(){ document.getElementById('verifyModal').classList.remove('active'); }
-
-async function submitVerify(){
-  const name = document.getElementById('verifyName').value.trim();
-  const team = document.getElementById('verifyTeam').value.trim();
-  const pin = document.getElementById('verifyPin').value.trim();
-  const msg = document.getElementById('verifyMsg');
-  msg.style.color = '#B44';
-  if(!name || !team){ msg.textContent = '이름과 소속을 입력해 주세요.'; return; }
-  if(!/^\d{4}$/.test(pin)){ msg.textContent = '4자리 PIN을 입력해 주세요.'; return; }
-  try{
-    const res = await fetch(API, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'verify-owner', name, team, pin, deviceToken })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok){
-      msg.textContent = data.message || '본인 확인에 실패했어요.';
-      return;
-    }
-    addVerifiedOwner(ownerKeyOf(name, team));
-    rememberNameTeam(name, team);
-    document.getElementById('inpName').value = name;
-    document.getElementById('inpTeam').value = team;
-    updatePinFieldVisibility();
-    closeVerify();
-    await fetchEntries();
-    switchView('board');
-    setMode('group');
-  }catch(e){
-    msg.textContent = '본인 확인에 실패했어요.';
-  }
-}
-
 // ---------- 공통 ----------
 
 async function fetchEntries(){
@@ -982,7 +836,6 @@ async function fetchEntries(){
     renderStatusBar();
     renderFilters();
     renderEntries();
-    updatePinFieldVisibility();
   }catch(e){}
 }
 
@@ -1039,33 +892,6 @@ function closeAdmin(){
   document.getElementById('adminModal').classList.remove('active');
   document.getElementById('adminMsg').textContent='';
   document.getElementById('cfgMsg').textContent='';
-  document.getElementById('resetPinMsg').textContent='';
-}
-
-async function resetOwnerPin(){
-  const pw = document.getElementById('adminPw').value;
-  const name = document.getElementById('resetPinName').value.trim();
-  const team = document.getElementById('resetPinTeam').value.trim();
-  const msg = document.getElementById('resetPinMsg');
-  msg.style.color = '#B44';
-  if(!pw){ msg.textContent='비밀번호를 입력해 주세요.'; return; }
-  if(!name || !team){ msg.textContent='이름과 소속을 입력해 주세요.'; return; }
-  try{
-    const res = await fetch(API, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ action:'reset-owner-pin', adminPassword: pw, name, team })
-    });
-    const data = await res.json().catch(()=>({}));
-    if(!res.ok){ msg.textContent = data.error || '초기화에 실패했어요.'; return; }
-    msg.style.color = '#21A366';
-    msg.textContent = data.removed
-      ? 'PIN이 초기화됐어요. 다음 제출 때 새 PIN을 만들 수 있어요.'
-      : '해당 이름·소속으로 등록된 PIN이 없었어요.';
-    document.getElementById('resetPinName').value = '';
-    document.getElementById('resetPinTeam').value = '';
-  }catch(e){
-    msg.textContent = '초기화에 실패했어요.';
-  }
 }
 
 async function saveConfig(){
@@ -1114,7 +940,6 @@ async function clearAll(){
 }
 
 restoreNameTeam();
-updatePinFieldVisibility();
 renderPillarGrid();
 renderPreview();
 renderStatusBar();
